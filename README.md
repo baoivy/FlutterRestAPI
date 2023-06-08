@@ -1,6 +1,6 @@
 # restapitest
 
-A new Flutter project.
+Simple program to fetch data from json file and show it in application
 
 ## Getting Started
 
