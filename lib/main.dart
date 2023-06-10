@@ -1,10 +1,10 @@
 // @dart=2.9
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:restapitest/post.dart';
 import 'remote_event.dart';
 import 'remote_bloc.dart';
 import 'remote_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() {
   runApp(
@@ -23,19 +23,19 @@ class Application extends StatelessWidget {
 }
 
 class MainPage extends StatefulWidget {
+  const MainPage({Key key}) : super(key: key);
   @override
   MainPageState createState() => MainPageState();
 }
 
 class MainPageState extends State<MainPage> {
   final TextEditingController myController = TextEditingController();
-  final bloc = RemoteBloc();
-  List<description> tmp = List();
+  final RemoteBloc bloc = RemoteBloc();
 
   @override
   void dispose() {
     myController.dispose();
-    bloc.dispose();
+    bloc.close();
     super.dispose();
   }
 
@@ -74,7 +74,8 @@ class MainPageState extends State<MainPage> {
                       ),
                     ),
                   ),
-                  onPressed: () => bloc.eventSink.add(RemoteEvent(int.parse(myController.text))),
+                  onPressed: () =>
+                      bloc.add(LoadEvent(int.parse(myController.text))),
                   child: const Text(
                     "Get data",
                     style: TextStyle(
@@ -85,53 +86,64 @@ class MainPageState extends State<MainPage> {
                 ),
               ),
             ),
-            StreamBuilder<RemoteState>(
-              stream: bloc.stateStream,
-              initialData: bloc.initialState,
-              builder: (BuildContext context, AsyncSnapshot<RemoteState> snapshot) {
-                final RemoteState state = snapshot.data ?? bloc.initialState;
-                if (snapshot.data.index != null && snapshot.data.index >= 0 && snapshot.data.index < state.postData.length) {
-                    tmp = [state.postData[snapshot.data.index]];
-                } 
-                else {
+            BlocBuilder<RemoteBloc, RemoteState>(
+              bloc: bloc,
+              builder: (context, state) {
+                if (state is LoadedState) {
+                  List<description> tmp = state.postData;
+                  if (state.index != null && state.index >= 0 && state.index < state.postData.length) {
+                    tmp = [state.postData[state.index]];
+                  } 
+                  else {
                     tmp.clear();
-                }
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
-                  child: ListView.builder(
-                    scrollDirection: Axis.vertical,
-                    shrinkWrap: true,
-                    itemCount: tmp.length,
-                    itemBuilder: (context, index) {
-                      return Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${tmp[0].userId}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black,
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
+                    child: ListView.builder(
+                      scrollDirection: Axis.vertical,
+                      shrinkWrap: true,
+                      itemCount: tmp.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${tmp[index].userId}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                '${tmp[0].title}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black,
+                                SizedBox(height: 5),
+                                Text(
+                                  '${tmp[0].title}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                );
+                        );
+                      },
+                    ),
+                  );
+                } else if (state is ErrorState) {
+                  return Text(
+                    'Error: ${state.error}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.red,
+                    ),
+                  );
+                } else {
+                  return const SizedBox.shrink();
+                }
               },
             ),
           ],
@@ -140,5 +152,3 @@ class MainPageState extends State<MainPage> {
     );
   }
 }
-
-

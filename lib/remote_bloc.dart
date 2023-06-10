@@ -1,30 +1,23 @@
-import 'dart:async';
 import 'remote_state.dart';
 import 'remote_event.dart';
 import 'request.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-class RemoteBloc {
-  final eventController = StreamController<RemoteEvent>();
-  final stateController = StreamController<RemoteState>.broadcast();
-
-  StreamSink<RemoteEvent> get eventSink => eventController.sink;
-  Stream<RemoteState> get stateStream => stateController.stream;
-  RemoteState get initialState => RemoteState(0, []);
-
-  RemoteBloc() {
-    eventController.stream.listen(_mapEventToState);
-  }
-
-  void _mapEventToState(RemoteEvent event) {
-    final index = event.index;
-    fetch().then((dataFromServer) {
-      final state = RemoteState(index, dataFromServer);
-      stateController.add(state);
-    });
-  }
-
-  void dispose() {
-    eventController.close();
-    stateController.close();
+class RemoteBloc extends Bloc<RemoteEvent, RemoteState> {
+  RemoteBloc() : super(LoadingState()) {
+      on<LoadEvent>((event, emit) async {
+        emit(LoadingState());
+        try {
+          final joke = await fetch();
+          emit(LoadedState(event.index, joke));
+        } catch (e) {
+          emit(ErrorState(e.toString()));
+        }
+      });
   }
 }
+
+
+
+
+
